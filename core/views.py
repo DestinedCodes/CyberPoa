@@ -28,15 +28,121 @@ from .auth_security import UserProfile
 from .business_access import get_business_access_state
 from .expense_utils import combined_expense_total, expense_breakdown_by_category, general_expenses_qs
 from .forms import BusinessProfileForm, ClientForm, TransactionForm, ExpenseForm, RegistrationForm, StaffUserCreationForm, TeamMemberUpdateForm, SupplyExpenseForm, SupplyExpenseLineItemFormSet, InvoiceSettingsForm, TransactionLineItemFormSet
-from .permissions import AdminRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore
+from .permissions import AdminRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, get_user_role
 from .tenancy import BusinessFormMixin, BusinessScopedQuerysetMixin, UserBusinessMixin, get_user_business
 
 
 class DashboardView(LoginRequiredMixin, ReportsRequiredMixin, UserBusinessMixin, TemplateView):
     template_name = 'core/dashboard.html'
 
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+    def get_template_names(self):
+        if self._use_staff_dashboard():
+            return ['core/staff_dashboard.html']
+        return [self.template_name]
+
+    def post(self, request, *args, **kwargs):
+        if not self._use_staff_dashboard():
+            messages.error(request, 'Quick transaction entry is available on the staff dashboard only.')
+            return redirect('transaction_add')
+
+        business = self.get_business()
+        transaction_instance = Transaction(business=business)
+        form = TransactionForm(request.POST, business=business, instance=transaction_instance)
+        item_formset = TransactionLineItemFormSet(
+            request.POST,
+            instance=transaction_instance,
+            prefix='items',
+        )
+
+        if form.is_valid() and item_formset.is_valid():
+            self._save_transaction(form, item_formset)
+            messages.success(request, 'Transaction saved successfully.')
+            return redirect('dashboard')
+
+        context = self.get_context_data(
+            transaction_form=form,
+            item_formset=item_formset,
+        )
+        return self.render_to_response(context)
+
+    def _use_staff_dashboard(self):
+        return get_user_role(self.request.user) == 'staff'
+
+    def _save_transaction(self, form, item_formset):
+        with db_transaction.atomic():
+            transaction_record = form.save(commit=False)
+            transaction_record.created_by = self.request.user
+            if not transaction_record.service_name:
+                transaction_record.service_name = 'Pending items'
+            transaction_record.unit_price = 0
+            transaction_record.quantity = 1
+            transaction_record.save()
+            item_formset.instance = transaction_record
+            item_formset.save()
+            transaction_record.sync_primary_item_fields()
+            transaction_record.recalculate_totals()
+            transaction_record.save(update_fields=[
+                'service_name',
+                'unit_price',
+                'quantity',
+                'total_amount',
+                'balance',
+                'status',
+            ])
+            if transaction_record.client:
+                TransactionForm._recalculate_client_totals(transaction_record.client)
+        return transaction_record
+
+    def _get_staff_dashboard_context(self, transaction_form=None, item_formset=None):
+        business = self.get_business()
+        today = timezone.now().date()
+        today_start = timezone.now().replace(hour=0, minute=0, second=0, microsecond=0)
+        today_end = timezone.now().replace(hour=23, minute=59, second=59, microsecond=999999)
+
+        if transaction_form is None:
+            transaction_form = TransactionForm(
+                business=business,
+                instance=Transaction(business=business, date=timezone.now()),
+            )
+        if item_formset is None:
+            item_formset = TransactionLineItemFormSet(
+                instance=Transaction(business=business),
+                prefix='items',
+            )
+
+        today_transactions = Transaction.objects.filter(
+            business=business,
+            created_by=self.request.user,
+            date__range=(today_start, today_end),
+        )
+        recent_transactions = Transaction.objects.filter(
+            business=business,
+            created_by=self.request.user,
+        ).select_related('client').order_by('-date')[:8]
+        recent_clients = Client.objects.filter(
+            business=business,
+            transactions__created_by=self.request.user,
+        ).annotate(
+            last_transaction=Max('transactions__date')
+        ).distinct().order_by('-last_transaction', '-id')[:6]
+
+        return {
+            'transaction_form': transaction_form,
+            'item_formset': item_formset,
+            'today_transaction_count': today_transactions.count(),
+            'today_transaction_total': today_transactions.aggregate(total=Sum('amount_paid'))['total'] or 0,
+            'pending_balance_count': Transaction.objects.filter(
+                business=business,
+                created_by=self.request.user,
+                balance__gt=0,
+            ).count(),
+            'recent_transactions': recent_transactions,
+            'recent_clients': recent_clients,
+            'selected_date': today.isoformat(),
+        }
+
+    def _get_admin_dashboard_context(self):
+        context = {}
 
         # Get filter parameters from request
         request = self.request
@@ -180,7 +286,17 @@ class DashboardView(LoginRequiredMixin, ReportsRequiredMixin, UserBusinessMixin,
             'selected_date': selected_date_str,
             'years': years,
         })
+        return context
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self._use_staff_dashboard():
+            context.update(self._get_staff_dashboard_context(
+                transaction_form=kwargs.get('transaction_form'),
+                item_formset=kwargs.get('item_formset'),
+            ))
+        else:
+            context.update(self._get_admin_dashboard_context())
         return context
 
 
@@ -1145,11 +1261,15 @@ def export_supplier_statement_pdf(request):
 
 def _get_transaction_for_user(user, pk):
     business = get_user_business(user)
+    filters = {
+        'pk': pk,
+        'business': business,
+    }
+    if get_user_role(user) == 'staff':
+        filters['created_by'] = user
+
     transaction = (
-        Transaction.objects.filter(
-            pk=pk,
-            business=business,
-        )
+        Transaction.objects.filter(**filters)
         .select_related('client')
         .prefetch_related('items')
         .first()
@@ -1193,7 +1313,10 @@ class TransactionInvoiceView(LoginRequiredMixin, RecordsRequiredMixin, BusinessS
     template_name = 'core/transaction_invoice.html'
 
     def get_queryset(self):
-        return super().get_queryset().select_related('client').prefetch_related('items')
+        queryset = super().get_queryset().select_related('client').prefetch_related('items')
+        if get_user_role(self.request.user) == 'staff':
+            queryset = queryset.filter(created_by=self.request.user)
+        return queryset
 
     def dispatch(self, request, *args, **kwargs):
         self.object = self.get_object()
@@ -1460,6 +1583,8 @@ class TransactionListView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScop
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if get_user_role(self.request.user) == 'staff':
+            qs = qs.filter(created_by=self.request.user)
         # filtering by GET params
         search = self.request.GET.get('search', '').strip()
         status = self.request.GET.get('status')
@@ -1493,6 +1618,11 @@ class TransactionCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFo
     template_name = 'core/transaction_form.html'
     success_url = reverse_lazy('transaction_list')
 
+    def get_success_url(self):
+        if get_user_role(self.request.user) == 'staff':
+            return reverse('dashboard')
+        return str(self.success_url)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         instance = getattr(self, 'object', None)
@@ -1510,6 +1640,7 @@ class TransactionCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFo
 
         with db_transaction.atomic():
             self.object = form.save(commit=False)
+            self.object.created_by = self.request.user
             if not self.object.service_name:
                 self.object.service_name = 'Pending items'
             self.object.unit_price = 0
@@ -1529,7 +1660,7 @@ class TransactionCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFo
             ])
             if self.object.client:
                 TransactionForm._recalculate_client_totals(self.object.client)
-        return redirect(self.success_url)
+        return redirect(self.get_success_url())
 
     def form_invalid(self, form):
         return self.render_to_response(self.get_context_data(form=form))
@@ -1548,6 +1679,12 @@ class TransactionUpdateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFo
         else:
             context['item_formset'] = TransactionLineItemFormSet(instance=self.object, prefix='items')
         return context
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if get_user_role(self.request.user) == 'staff':
+            queryset = queryset.filter(created_by=self.request.user)
+        return queryset
 
     def form_valid(self, form):
         context = self.get_context_data(form=form)
@@ -1592,6 +1729,12 @@ class TransactionDeleteView(LoginRequiredMixin, RecordsRequiredMixin, BusinessSc
     model = Transaction
     template_name = 'core/transaction_confirm_delete.html'
     success_url = reverse_lazy('transaction_list')
+
+    def get_queryset(self):
+        queryset = super().get_queryset()
+        if get_user_role(self.request.user) == 'staff':
+            queryset = queryset.filter(created_by=self.request.user)
+        return queryset
 
 
 # expense

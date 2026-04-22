@@ -268,6 +268,13 @@ class Transaction(models.Model):
     ]
 
     business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='transactions')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        related_name='entered_transactions',
+        blank=True,
+        null=True,
+    )
     date = models.DateTimeField("Date", default=timezone.now)
     client = models.ForeignKey(Client, on_delete=models.SET_NULL, related_name='transactions', blank=True, null=True)
     service_name = models.CharField("Service Name", max_length=255)

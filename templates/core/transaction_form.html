@@ -3,7 +3,11 @@
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
     <h2 style="margin:0;">{% if object %}Edit{% else %}Add{% endif %} Transaction</h2>
-    <a href="{% url 'transaction_list' %}" class="btn btn-light">Back to Transactions</a>
+    {% if app_role == 'staff' and not object %}
+        <a href="{% url 'dashboard' %}" class="btn btn-light">Back to Transaction Desk</a>
+    {% else %}
+        <a href="{% url 'transaction_list' %}" class="btn btn-light">Back to Transactions</a>
+    {% endif %}
 </div>
 
 <form method="post">
