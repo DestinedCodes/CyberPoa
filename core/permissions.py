@@ -40,8 +40,12 @@ def can_manage_records(user):
     return get_user_role(user) in {'admin', 'staff'}
 
 
+def can_manage_expenses(user):
+    return get_user_role(user) == 'admin'
+
+
 def can_view_reports(user):
-    return get_user_role(user) in {'admin', 'staff', 'viewer'}
+    return get_user_role(user) in {'admin', 'viewer'}
 
 
 class PermissionRedirectMixin:
@@ -69,6 +73,13 @@ class RecordsRequiredMixin(PermissionRedirectMixin):
 
     def has_permission(self):
         return can_manage_records(self.request.user)
+
+
+class ExpenseRequiredMixin(PermissionRedirectMixin):
+    permission_denied_message = 'Only the business owner can manage expenses.'
+
+    def has_permission(self):
+        return can_manage_expenses(self.request.user)
 
 
 class ReportsRequiredMixin(PermissionRedirectMixin):

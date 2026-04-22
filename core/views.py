@@ -28,11 +28,11 @@ from .auth_security import UserProfile
 from .business_access import get_business_access_state
 from .expense_utils import combined_expense_total, expense_breakdown_by_category, general_expenses_qs
 from .forms import BusinessProfileForm, ClientForm, TransactionForm, ExpenseForm, RegistrationForm, StaffUserCreationForm, TeamMemberUpdateForm, SupplyExpenseForm, SupplyExpenseLineItemFormSet, InvoiceSettingsForm, TransactionLineItemFormSet
-from .permissions import AdminRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, get_user_role
+from .permissions import AdminRequiredMixin, ExpenseRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, get_user_role
 from .tenancy import BusinessFormMixin, BusinessScopedQuerysetMixin, UserBusinessMixin, get_user_business
 
 
-class DashboardView(LoginRequiredMixin, ReportsRequiredMixin, UserBusinessMixin, TemplateView):
+class DashboardView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
     template_name = 'core/dashboard.html'
 
     def get_template_names(self):
@@ -1738,7 +1738,7 @@ class TransactionDeleteView(LoginRequiredMixin, RecordsRequiredMixin, BusinessSc
 
 
 # expense
-class ExpenseListView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScopedQuerysetMixin, ListView):
+class ExpenseListView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessScopedQuerysetMixin, ListView):
     model = Expense
     template_name = 'core/expense_list.html'
     paginate_by = 25
@@ -1769,27 +1769,27 @@ class ExpenseListView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScopedQu
         return context
 
 
-class ExpenseCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFormMixin, CreateView):
+class ExpenseCreateView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessFormMixin, CreateView):
     model = Expense
     form_class = ExpenseForm
     template_name = 'core/expense_form.html'
     success_url = reverse_lazy('expense_list')
 
 
-class ExpenseUpdateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFormMixin, BusinessScopedQuerysetMixin, UpdateView):
+class ExpenseUpdateView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessFormMixin, BusinessScopedQuerysetMixin, UpdateView):
     model = Expense
     form_class = ExpenseForm
     template_name = 'core/expense_form.html'
     success_url = reverse_lazy('expense_list')
 
 
-class ExpenseDeleteView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScopedQuerysetMixin, DeleteView):
+class ExpenseDeleteView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessScopedQuerysetMixin, DeleteView):
     model = Expense
     template_name = 'core/expense_confirm_delete.html'
     success_url = reverse_lazy('expense_list')
 
 
-class SupplyExpenseListView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScopedQuerysetMixin, ListView):
+class SupplyExpenseListView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessScopedQuerysetMixin, ListView):
     model = SupplyExpense
     template_name = 'core/supply_expense_list.html'
     paginate_by = 25
@@ -1814,7 +1814,7 @@ class SupplyExpenseListView(LoginRequiredMixin, RecordsRequiredMixin, BusinessSc
         return context
 
 
-class SupplyExpenseCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFormMixin, CreateView):
+class SupplyExpenseCreateView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessFormMixin, CreateView):
     model = SupplyExpense
     form_class = SupplyExpenseForm
     template_name = 'core/supply_expense_form.html'
@@ -1876,7 +1876,7 @@ class SupplyExpenseCreateView(LoginRequiredMixin, RecordsRequiredMixin, Business
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class SupplyExpenseUpdateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFormMixin, BusinessScopedQuerysetMixin, UpdateView):
+class SupplyExpenseUpdateView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessFormMixin, BusinessScopedQuerysetMixin, UpdateView):
     model = SupplyExpense
     form_class = SupplyExpenseForm
     template_name = 'core/supply_expense_form.html'
@@ -1935,7 +1935,7 @@ class SupplyExpenseUpdateView(LoginRequiredMixin, RecordsRequiredMixin, Business
         return self.render_to_response(self.get_context_data(form=form))
 
 
-class SupplyExpenseDeleteView(LoginRequiredMixin, RecordsRequiredMixin, BusinessScopedQuerysetMixin, DeleteView):
+class SupplyExpenseDeleteView(LoginRequiredMixin, ExpenseRequiredMixin, BusinessScopedQuerysetMixin, DeleteView):
     model = SupplyExpense
     template_name = 'core/expense_confirm_delete.html'
     success_url = reverse_lazy('supply_expense_list')
