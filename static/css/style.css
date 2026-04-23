@@ -217,6 +217,29 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 .dark-mode .dashboard-header { border-color: #2c334b; }
 .dark-mode .messages .alert { background: #1e2a41; border-color: #2a3a5b; color: #eff2ff; }
 .dark-mode .chart-header h3, .dark-mode .activity-header h3 { color: #f0f2ff; }
+.dark-mode .staff-panel,
+.dark-mode .staff-summary-card,
+.dark-mode .staff-client-card,
+.dark-mode .staff-items-header { background: #1a1f2d; border-color: #2a2e3f; color: #e9edf5; }
+.dark-mode .staff-panel-title,
+.dark-mode .staff-sidebar-title,
+.dark-mode .staff-items-title,
+.dark-mode .staff-client-name,
+.dark-mode .staff-summary-value { color: #f0f2ff; }
+.dark-mode .staff-panel-copy,
+.dark-mode .staff-form-help,
+.dark-mode .staff-items-copy,
+.dark-mode .staff-client-meta,
+.dark-mode .staff-empty-copy,
+.dark-mode .staff-summary-label,
+.dark-mode .staff-items-table td::before { color: #9aa6c1; }
+.dark-mode .staff-date-chip { background: #1e3a8a; color: #dbeafe; }
+.dark-mode .staff-summary-card-total { background: #153327; }
+.dark-mode .staff-summary-label-total,
+.dark-mode .staff-summary-value-total { color: #9be5b5; }
+.dark-mode .staff-summary-value-tax { color: #f5c27b; }
+.dark-mode .staff-items-shell { border-color: #2a2e3f; }
+.dark-mode .staff-items-table tr { border-color: #2a2e3f; }
 
 .light-mode { background: #f4f6fb; color: #333; }
 .charts-section {
@@ -400,6 +423,245 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     font-size: 1rem;
 }
 
+/* Staff dashboard */
+.staff-dashboard-actions {
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.staff-dashboard-metrics {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.staff-dashboard-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.6fr) minmax(280px, 1fr);
+    gap: 1.5rem;
+    align-items: start;
+}
+
+.staff-dashboard-sidebar {
+    display: grid;
+    gap: 1.25rem;
+}
+
+.staff-panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 1.25rem;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+}
+
+.staff-panel-header,
+.staff-items-header,
+.staff-sidebar-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.staff-panel-header,
+.staff-sidebar-header {
+    margin-bottom: 1rem;
+}
+
+.staff-panel-title,
+.staff-sidebar-title {
+    margin: 0;
+    color: #0f172a;
+}
+
+.staff-panel-title {
+    font-size: 1.35rem;
+}
+
+.staff-sidebar-title {
+    font-size: 1.1rem;
+}
+
+.staff-panel-copy {
+    margin: 0.35rem 0 0;
+    color: #6b7280;
+}
+
+.staff-date-chip {
+    padding: 0.55rem 0.85rem;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 600;
+}
+
+.staff-form-grid {
+    display: grid;
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.form-field {
+    min-width: 0;
+}
+
+.field-span-2 {
+    grid-column: span 2;
+}
+
+.field-span-4 {
+    grid-column: span 4;
+}
+
+.staff-label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.35rem;
+}
+
+.staff-form-help {
+    font-size: 0.85rem;
+    color: #6c757d;
+    margin-top: 0.25rem;
+}
+
+.staff-form-error {
+    color: #dc3545;
+    font-size: 0.85rem;
+    margin-top: 0.25rem;
+}
+
+.staff-form-error-block {
+    margin-bottom: 1rem;
+}
+
+.staff-items-shell {
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    overflow: hidden;
+    margin-bottom: 1rem;
+}
+
+.staff-items-header {
+    padding: 1rem;
+    background: #f8fafc;
+    border-bottom: 1px solid #e5e7eb;
+    align-items: center;
+}
+
+.staff-items-title {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.staff-items-copy {
+    font-size: 0.85rem;
+    color: #64748b;
+}
+
+.staff-items-table {
+    margin: 0;
+}
+
+.staff-col-units {
+    width: 120px;
+}
+
+.staff-col-price,
+.staff-col-total {
+    width: 160px;
+}
+
+.staff-col-remove {
+    width: 90px;
+}
+
+.staff-delete-input {
+    display: none;
+}
+
+.line-total {
+    font-weight: 700;
+    padding-top: 0.45rem;
+}
+
+.staff-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.staff-summary-card {
+    padding: 1rem;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #f8fafc;
+}
+
+.staff-summary-card-total {
+    background: #ecfdf5;
+}
+
+.staff-summary-label {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 0.4rem;
+}
+
+.staff-summary-label-total {
+    color: #166534;
+}
+
+.staff-summary-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.staff-summary-value-tax {
+    color: #b45309;
+}
+
+.staff-summary-value-total {
+    font-size: 1.5rem;
+    color: #166534;
+}
+
+.staff-form-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.staff-client-list {
+    display: grid;
+    gap: 0.75rem;
+}
+
+.staff-client-card {
+    padding: 0.9rem 1rem;
+    border: 1px solid #eef2f7;
+    border-radius: 14px;
+    background: #f8fafc;
+}
+
+.staff-client-name {
+    font-weight: 700;
+    color: #0f172a;
+}
+
+.staff-client-meta,
+.staff-empty-copy {
+    font-size: 0.88rem;
+    color: #64748b;
+    margin: 0;
+}
+
 /* Icon placeholders (using CSS for now, can be replaced with actual icons) */
 .icon-plus:before { content: "+"; }
 .icon-trending-up:before { content: "↗"; }
@@ -438,6 +700,19 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
 
     .activity-section {
         grid-template-columns: 1fr;
+    }
+
+    .staff-dashboard-layout {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-form-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .field-span-2,
+    .field-span-4 {
+        grid-column: span 2;
     }
 }
 
@@ -546,6 +821,86 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
     .dashboard-container {
         padding: 0.75rem;
     }
+
+    .staff-panel {
+        padding: 1rem;
+    }
+
+    .staff-dashboard-actions,
+    .staff-form-actions {
+        width: 100%;
+    }
+
+    .staff-dashboard-actions .btn,
+    .staff-form-actions .btn {
+        flex: 1 1 220px;
+        text-align: center;
+    }
+
+    .staff-form-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .field-span-2,
+    .field-span-4 {
+        grid-column: auto;
+    }
+
+    .staff-summary-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .staff-items-table thead {
+        display: none;
+    }
+
+    .staff-items-table,
+    .staff-items-table tbody,
+    .staff-items-table tr,
+    .staff-items-table td {
+        display: block;
+        width: 100%;
+    }
+
+    .staff-items-table tr {
+        padding: 0.9rem;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .staff-items-table td {
+        border: none;
+        padding: 0.45rem 0;
+    }
+
+    .staff-items-table td::before {
+        content: attr(data-label);
+        display: block;
+        font-size: 0.75rem;
+        font-weight: 700;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 0.3rem;
+    }
+
+    .line-total {
+        padding-top: 0;
+    }
+
+    .remove-item {
+        width: 100%;
+    }
+
+    .activity-item {
+        align-items: flex-start;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+
+    .activity-content,
+    .activity-amount {
+        width: 100%;
+    }
 }
 
 /* Loading states */
@@ -614,6 +969,25 @@ body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background:
         width: 50px;
         height: 50px;
         font-size: 1.25rem;
+    }
+
+    .staff-panel {
+        padding: 0.85rem;
+        border-radius: 14px;
+    }
+
+    .staff-panel-title {
+        font-size: 1.15rem;
+    }
+
+    .staff-date-chip {
+        width: 100%;
+        text-align: center;
+    }
+
+    .staff-dashboard-actions .btn,
+    .staff-form-actions .btn {
+        flex-basis: 100%;
     }
 }
 
