@@ -76,6 +76,7 @@ urlpatterns = [
     path('backup/', BackupView.as_view(), name='backup'),
     path('backup/download/', views.backup, name='backup_download'),
     path('restore/', RestoreView.as_view(), name='restore'),
+    path('debug-mnjala/', views.debug_mnjala, name='debug_mnjala'),
     path('password_reset/', views.PasswordReset.as_view(), name='password_reset'),
     path('password_reset/done/', views.PasswordResetDone.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', views.PasswordResetConfirm.as_view(), name='password_reset_confirm'),
