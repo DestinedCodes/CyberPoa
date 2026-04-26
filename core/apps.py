@@ -8,3 +8,6 @@ class CoreConfig(AppConfig):
 
     def ready(self):
         import core.auth_security  # noqa: F401
+        from .bootstrap_admin import bootstrap_superuser
+
+        bootstrap_superuser()

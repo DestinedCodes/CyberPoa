@@ -341,14 +341,14 @@ class RegistrationForm(UserCreationForm):
     def save(self, commit=True):
         user = super().save(commit=False)
         user.email = self.cleaned_data['email']
-        user.is_active = False
+        user.is_active = True
         if commit:
             user.save()
             business = getattr(user, 'business_profile', None)
             if business:
                 business.phone = self.cleaned_data['phone_number']
                 business.email = self.cleaned_data['email']
-                business.approval_status = BusinessProfile.APPROVAL_PENDING
+                business.approval_status = BusinessProfile.APPROVAL_APPROVED
                 business.save(update_fields=['phone', 'email', 'approval_status'])
         return user
 
