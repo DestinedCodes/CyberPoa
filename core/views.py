@@ -2154,7 +2154,7 @@ def restore(request):
                 
                 # Validate JSON
                 try:
-                    json.loads(backup_data)
+                    parsed_data = json.loads(backup_data); excluded_models = {'contenttypes.contenttype', 'auth.permission', 'admin.logentry', 'sessions.session'}; cleaned_data = [item for item in parsed_data if item.get('model') not in excluded_models]; backup_data = json.dumps(cleaned_data)
                 except json.JSONDecodeError:
                     messages.error(request, 'Backup file is not valid JSON. Please upload a backup created by this system.')
                     return render(request, 'core/restore.html')
