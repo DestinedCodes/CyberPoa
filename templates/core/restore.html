@@ -1,10 +1,13 @@
 {% extends 'base.html' %}
 {% block title %}Restore Database{% endblock %}
 {% block content %}
-<h2>Restore Database</h2>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    <input type="file" name="dbfile" />
-    <button type="submit" class="btn">Upload and Restore</button>
-</form>
+<div style="max-width:800px;margin:2rem auto;padding:1rem;background:#fff;border:1px solid #e4e7ed;border-radius:8px;">
+    <h2>Restore Database</h2>
+    <p>Upload a CyberPoa JSON backup file. For Supabase migration, connect the app to Supabase first, run migrations, then restore the backup here.</p>
+    <form method="post" enctype="multipart/form-data" style="margin-top:1rem;display:grid;gap:1rem;">
+        {% csrf_token %}
+        <input type="file" name="dbfile" accept=".json,.sqlite3,.db" class="form-control" />
+        <button type="submit" class="btn">Upload and Restore</button>
+    </form>
+</div>
 {% endblock %}

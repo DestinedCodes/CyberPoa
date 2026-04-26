@@ -2075,12 +2075,31 @@ def report_index(request):
 
 # backup / restore views
 import os
-import subprocess
 import json
 from io import StringIO
 from django.conf import settings
 from django.http import HttpResponse
 from django.core.management import call_command
+
+SUPABASE_FIXTURE_EXCLUDES = (
+    'contenttypes',
+    'auth.permission',
+    'sessions',
+    'admin.logentry',
+)
+
+
+def _build_portable_backup_json():
+    output = StringIO()
+    call_command(
+        'dumpdata',
+        stdout=output,
+        use_natural_foreign_keys=True,
+        use_natural_primary_keys=True,
+        indent=2,
+        exclude=SUPABASE_FIXTURE_EXCLUDES,
+    )
+    return output.getvalue().encode('utf-8')
 
 def backup(request):
     if not request.user.is_authenticated:
@@ -2091,27 +2110,14 @@ def backup(request):
     
     db_config = settings.DATABASES['default']
     db_engine = db_config.get('ENGINE', '')
-    
-    # Handle SQLite
-    if 'sqlite' in db_engine.lower():
-        db_path = db_config.get('NAME', '')
-        if os.path.exists(db_path):
-            with open(db_path, 'rb') as f:
-                response = HttpResponse(f.read(), content_type='application/x-sqlite3')
-                response['Content-Disposition'] = 'attachment; filename="db_backup.sqlite3"'
-                return response
-        return HttpResponse('Database file not found', status=404)
-    
-    # Handle PostgreSQL using Django's dumpdata
-    elif 'postgresql' in db_engine.lower():
+
+    if 'sqlite' in db_engine.lower() or 'postgresql' in db_engine.lower():
         try:
-            # Use Django's dumpdata to export all data as JSON
-            output = StringIO()
-            call_command('dumpdata', stdout=output, use_natural_foreign_keys=True, use_natural_primary_keys=True)
-            backup_data = output.getvalue().encode('utf-8')
+            backup_data = _build_portable_backup_json()
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             
             response = HttpResponse(backup_data, content_type='application/json')
-            response['Content-Disposition'] = 'attachment; filename="db_backup.json"'
+            response['Content-Disposition'] = f'attachment; filename="cyberpoa_supabase_backup_{timestamp}.json"'
             return response
         
         except Exception as e:
