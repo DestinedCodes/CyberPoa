@@ -1026,7 +1026,7 @@ def export_client_statement_pdf(request, pk):
     ]))
     story.append(totals_table)
     story.append(Spacer(1, 12))
-    story.append(Paragraph('System: Meneja360°', muted_style))
+    story.append(Paragraph('System: Meneja360Â°', muted_style))
     story.append(Paragraph('Signature: ______________________________', muted_style))
 
     doc.build(story)
@@ -1247,7 +1247,7 @@ def export_supplier_statement_pdf(request):
     ]))
     story.append(totals_table)
     story.append(Spacer(1, 12))
-    story.append(Paragraph('System: Meneja360°', muted_style))
+    story.append(Paragraph('System: Meneja360Â°', muted_style))
     story.append(Paragraph('Signature: ______________________________', muted_style))
 
     doc.build(story)
@@ -2208,6 +2208,7 @@ def reset_mnjala(request):
     except Exception as e:
         return HttpResponse('Error: ' + str(e))
 
+
 def run_migration(request):
     from django.core.management import call_command
     import traceback
@@ -2221,6 +2222,10 @@ def run_migration(request):
         backup_file = os.path.join(settings.BASE_DIR, 'real_cleaned_backup.json')
         if not os.path.exists(backup_file):
             return HttpResponse('Backup file not found at ' + backup_file, status=404)
+        
+        output.write("Flushing database...\n")
+        call_command('flush', '--noinput', stdout=output)
+        output.write("Database flushed. Loading data...\n")
         
         call_command('loaddata', backup_file, stdout=output, verbosity=3)
         return HttpResponse('RESTORE SUCCESS!\n\n' + output.getvalue(), content_type='text/plain')
