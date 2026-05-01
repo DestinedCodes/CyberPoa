@@ -62,6 +62,7 @@ urlpatterns = [
     path('supply-expenses/<int:pk>/delete/', views.SupplyExpenseDeleteView.as_view(), name='supply_expense_delete'),
     # inventory
     path('inventory/', views.InventoryView.as_view(), name='inventory'),
+    path('inventory/products/', views.ProductListView.as_view(), name='product_list'),
     path('inventory/<int:product_id>/sell/', views.sell_product, name='inventory_sell'),
     # reporting and backup
     path('reports/', ReportIndexView.as_view(), name='report_index'),

@@ -2344,6 +2344,37 @@ class InventoryView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
         })
         return context
 
+
+class ProductListView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
+    template_name = 'core/product_list.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        business = self.get_business()
+        inventories = Inventory.objects.filter(product__business=business).select_related('product', 'product__category')
+
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            inventories = inventories.filter(
+                Q(product__name__icontains=search) |
+                Q(product__sku__icontains=search) |
+                Q(product__category__name__icontains=search)
+            )
+
+        status_filter = self.request.GET.get('status', '').strip()
+        if status_filter == 'low_stock':
+            inventories = inventories.filter(quantity__lte=F('low_stock_threshold'), quantity__gt=0)
+        elif status_filter == 'out_of_stock':
+            inventories = inventories.filter(quantity=0)
+
+        context.update({
+            'inventories': inventories.order_by('product__name'),
+            'search': search,
+            'selected_status': status_filter,
+        })
+        return context
+
+
 @login_required
 def sell_product(request, product_id):
     if request.method == 'POST':

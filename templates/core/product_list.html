@@ -1,0 +1,55 @@
+{% extends 'base.html' %}
+{% load currency_filters %}
+{% block title %}Products{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
+    <div>
+        <h2 style="margin:0;">Available Products</h2>
+        <p style="margin:0.35rem 0 0; color:#718096;">Browse all products currently registered in your inventory.</p>
+    </div>
+    <a href="{% url 'inventory' %}" class="btn btn-light">Back to Inventory</a>
+</div>
+
+<div style="background:white; border-radius:12px; padding:1rem; box-shadow:0 2px 4px rgba(0,0,0,0.04); margin-bottom:1rem;">
+    <form method="get" style="display:flex; gap:0.75rem; flex-wrap:wrap; align-items:center;">
+        <input type="text" name="search" value="{{ search }}" placeholder="Search product name, SKU, or category" style="min-width:280px; padding:0.7rem 0.9rem; border:1px solid #ced4da; border-radius:8px;">
+        <select name="status" style="padding:0.7rem 0.9rem; border:1px solid #ced4da; border-radius:8px;">
+            <option value="" {% if not selected_status %}selected{% endif %}>All Statuses</option>
+            <option value="low_stock" {% if selected_status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+            <option value="out_of_stock" {% if selected_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+        </select>
+        <button type="submit" class="btn">Search</button>
+        <a href="{% url 'product_list' %}" class="btn btn-light">Clear</a>
+    </form>
+</div>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Product</th>
+            <th>SKU</th>
+            <th>Category</th>
+            <th>Price</th>
+            <th>Stock</th>
+            <th>Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for inv in inventories %}
+        <tr>
+            <td>{{ inv.product.name }}</td>
+            <td>{{ inv.product.sku|default:"-" }}</td>
+            <td>{{ inv.product.category.name|default:"Uncategorized" }}</td>
+            <td>{{ inv.product.price|ksh }}</td>
+            <td>{{ inv.quantity }}</td>
+            <td>{{ inv.status }}</td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="6">No products found.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}
