@@ -2,9 +2,7 @@ from django.contrib import admin
 from django.utils.html import format_html
 from django.db.models import Q
 from .currency import format_ksh
-from .models import BusinessProfile, Client, Transaction, Expense, SupplyExpense, Payment
-
-
+from .models import BusinessProfile, Client, Transaction, Expense, SupplyExpense, Payment, ProductCategory, Product, Inventory
 class OutstandingBalanceFilter(admin.SimpleListFilter):
     """
     Custom filter to show clients with outstanding balances.
@@ -185,3 +183,25 @@ class PaymentAdmin(admin.ModelAdmin):
     list_display = ('business', 'amount', 'payment_date', 'duration_days', 'reference', 'recorded_by')
     list_filter = ('payment_date', 'business')
     search_fields = ('business__name', 'reference', 'notes')
+
+
+@admin.register(ProductCategory)
+class ProductCategoryAdmin(admin.ModelAdmin):
+    list_display = ('name', 'business')
+    list_filter = ('business',)
+    search_fields = ('name',)
+
+
+@admin.register(Product)
+class ProductAdmin(admin.ModelAdmin):
+    list_display = ('name', 'sku', 'category', 'price', 'business')
+    list_filter = ('category', 'business')
+    search_fields = ('name', 'sku')
+
+
+@admin.register(Inventory)
+class InventoryAdmin(admin.ModelAdmin):
+    list_display = ('product', 'quantity', 'low_stock_threshold', 'status')
+    list_filter = ('product__category', 'product__business')
+    search_fields = ('product__name', 'product__sku')
+    readonly_fields = ('status',)

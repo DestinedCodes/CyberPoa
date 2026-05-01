@@ -1,0 +1,476 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load currency_filters %}
+{% block title %}Inventory & Stock Management{% endblock %}
+
+{% block content %}
+<style>
+    /* SaaS Dashboard Style specific to Inventory */
+    .inventory-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+    }
+    
+    .inventory-title h1 {
+        font-size: 1.8rem;
+        color: #1a202c;
+        margin-bottom: 0.5rem;
+        font-weight: 700;
+    }
+    
+    .inventory-title p {
+        color: #718096;
+        margin: 0;
+    }
+    
+    .metrics-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .inventory-metric-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        display: flex;
+        align-items: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .inventory-metric-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+    }
+    
+    .metric-icon-wrap {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        margin-right: 1rem;
+    }
+    
+    .metric-total { background: #ebf8ff; color: #3182ce; }
+    .metric-low { background: #fffaf0; color: #dd6b20; }
+    .metric-out { background: #fff5f5; color: #e53e3e; }
+    
+    .metric-info h4 {
+        margin: 0 0 0.25rem 0;
+        font-size: 0.875rem;
+        color: #718096;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .metric-info span {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: #2d3748;
+    }
+    
+    .controls-panel {
+        background: white;
+        padding: 1.25rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        margin-bottom: 1.5rem;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+        justify-content: space-between;
+    }
+    
+    .search-filter-group {
+        display: flex;
+        gap: 1rem;
+        flex: 1;
+        flex-wrap: wrap;
+    }
+    
+    .inventory-search, .inventory-select {
+        padding: 0.6rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 0.95rem;
+        outline: none;
+        transition: border-color 0.2s ease;
+    }
+    
+    .inventory-search {
+        min-width: 250px;
+        flex: 1;
+    }
+    
+    .inventory-search:focus, .inventory-select:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    
+    .table-container {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        overflow: hidden;
+    }
+    
+    .inventory-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .inventory-table th {
+        background: #f8fafc;
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #4a5568;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .inventory-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #edf2f7;
+        color: #2d3748;
+        vertical-align: middle;
+    }
+    
+    .inventory-table tr:hover td {
+        background: #fbfbfc;
+    }
+    
+    .inventory-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .status-badge {
+        padding: 0.35rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        display: inline-block;
+    }
+    
+    .status-in-stock { background: #c6f6d5; color: #22543d; }
+    .status-low-stock { background: #feebc8; color: #7b341e; }
+    .status-out-of-stock { background: #fed7d7; color: #822727; }
+    
+    .action-btn {
+        padding: 0.4rem 0.8rem;
+        border-radius: 6px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        border: none;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-sell {
+        background: #667eea;
+        color: white;
+    }
+    
+    .btn-sell:hover {
+        background: #5a67d8;
+        transform: translateY(-1px);
+    }
+    
+    .btn-sell:disabled {
+        background: #cbd5e0;
+        cursor: not-allowed;
+        transform: none;
+    }
+    
+    .empty-state {
+        padding: 3rem;
+        text-align: center;
+        color: #a0aec0;
+    }
+    
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        color: #cbd5e0;
+    }
+    
+    /* Modal styles */
+    .modal-overlay {
+        position: fixed;
+        top: 0; left: 0; width: 100%; height: 100%;
+        background: rgba(0,0,0,0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.3s ease;
+        backdrop-filter: blur(2px);
+    }
+    
+    .modal-overlay.active {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    
+    .sell-modal {
+        background: white;
+        padding: 2rem;
+        border-radius: 12px;
+        width: 100%;
+        max-width: 400px;
+        box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1);
+        transform: translateY(20px);
+        transition: transform 0.3s ease;
+    }
+    
+    .modal-overlay.active .sell-modal {
+        transform: translateY(0);
+    }
+    
+    .sell-modal h3 {
+        margin-top: 0;
+        margin-bottom: 1.5rem;
+        color: #2d3748;
+    }
+    
+    .sell-input-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .sell-input-group label {
+        display: block;
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+        color: #4a5568;
+    }
+    
+    .sell-input-group input {
+        width: 100%;
+        padding: 0.75rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+    }
+    
+    .modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+    }
+    
+    .btn-cancel {
+        background: #edf2f7;
+        color: #4a5568;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .btn-confirm {
+        background: #48bb78;
+        color: white;
+        padding: 0.6rem 1.2rem;
+        border-radius: 8px;
+        border: none;
+        cursor: pointer;
+        font-weight: 500;
+    }
+    
+    .btn-confirm:hover { background: #38a169; }
+    .btn-cancel:hover { background: #e2e8f0; }
+
+</style>
+
+<div class="inventory-container">
+    
+    <div class="inventory-header">
+        <div class="inventory-title">
+            <h1>Inventory Management</h1>
+            <p>Track your stock levels, categories, and make quick POS sales.</p>
+        </div>
+        <div>
+            <!-- Placeholder for future add product button -->
+            <button class="action-btn btn-sell" onclick="alert('Manage products in Django Admin for now.')">
+                <i class="icon-plus"></i> Admin Panel
+            </button>
+        </div>
+    </div>
+    
+    <div class="metrics-row">
+        <div class="inventory-metric-card">
+            <div class="metric-icon-wrap metric-total">
+                <i class="icon-box">📦</i>
+            </div>
+            <div class="metric-info">
+                <h4>Total Products</h4>
+                <span>{{ total_products }}</span>
+            </div>
+        </div>
+        <div class="inventory-metric-card">
+            <div class="metric-icon-wrap metric-low">
+                <i class="icon-alert-triangle">⚠️</i>
+            </div>
+            <div class="metric-info">
+                <h4>Low Stock</h4>
+                <span>{{ low_stock_count }}</span>
+            </div>
+        </div>
+        <div class="inventory-metric-card">
+            <div class="metric-icon-wrap metric-out">
+                <i class="icon-x-circle">🔴</i>
+            </div>
+            <div class="metric-info">
+                <h4>Out of Stock</h4>
+                <span>{{ out_of_stock_count }}</span>
+            </div>
+        </div>
+    </div>
+    
+    <div class="controls-panel">
+        <form method="get" class="search-filter-group" id="filterForm">
+            <input type="text" name="search" class="inventory-search" placeholder="Search by product name or SKU..." value="{{ search }}">
+            
+            <select name="category" class="inventory-select" onchange="document.getElementById('filterForm').submit()">
+                <option value="">All Categories</option>
+                {% for cat in categories %}
+                <option value="{{ cat.id }}" {% if selected_category == cat.id|stringformat:"i" %}selected{% endif %}>{{ cat.name }}</option>
+                {% endfor %}
+            </select>
+            
+            <select name="status" class="inventory-select" onchange="document.getElementById('filterForm').submit()">
+                <option value="">All Statuses</option>
+                <option value="in_stock" {% if selected_status == 'in_stock' %}selected{% endif %}>In Stock</option>
+                <option value="low_stock" {% if selected_status == 'low_stock' %}selected{% endif %}>Low Stock</option>
+                <option value="out_of_stock" {% if selected_status == 'out_of_stock' %}selected{% endif %}>Out of Stock</option>
+            </select>
+            
+            <button type="submit" class="action-btn btn-sell" style="padding: 0.6rem 1rem;">Filter</button>
+        </form>
+    </div>
+    
+    <div class="table-container">
+        <table class="inventory-table">
+            <thead>
+                <tr>
+                    <th>Product Name</th>
+                    <th>SKU</th>
+                    <th>Category</th>
+                    <th>Price</th>
+                    <th>Stock Level</th>
+                    <th>Status</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for inv in inventories %}
+                <tr>
+                    <td><strong>{{ inv.product.name }}</strong></td>
+                    <td><span style="color: #718096; font-family: monospace;">{{ inv.product.sku|default:"-" }}</span></td>
+                    <td>{{ inv.product.category.name|default:"Uncategorized" }}</td>
+                    <td>{{ inv.product.price|ksh }}</td>
+                    <td>
+                        <span style="font-weight:600; font-size:1.1rem;">{{ inv.quantity }}</span> 
+                        <span style="color:#a0aec0; font-size:0.8rem;">/ min {{ inv.low_stock_threshold }}</span>
+                    </td>
+                    <td>
+                        {% if inv.status == 'In Stock' %}
+                            <span class="status-badge status-in-stock">In Stock</span>
+                        {% elif inv.status == 'Low Stock' %}
+                            <span class="status-badge status-low-stock">Low Stock</span>
+                        {% else %}
+                            <span class="status-badge status-out-of-stock">Out of Stock</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <button class="action-btn btn-sell" 
+                                onclick="openSellModal({{ inv.product.id }}, '{{ inv.product.name|escapejs }}', {{ inv.quantity }}, {{ inv.product.price }})"
+                                {% if inv.quantity <= 0 %}disabled{% endif %}>
+                            Sell Item
+                        </button>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="7">
+                        <div class="empty-state">
+                            <i>📦</i>
+                            <h3>No products found</h3>
+                            <p>Try adjusting your filters or add products from the admin panel.</p>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+</div>
+
+<!-- POS Sell Modal -->
+<div class="modal-overlay" id="sellModal">
+    <div class="sell-modal">
+        <h3>Sell Item: <span id="modalProductName"></span></h3>
+        <form id="sellForm" method="post" action="">
+            {% csrf_token %}
+            <div class="sell-input-group">
+                <label>Available Stock</label>
+                <input type="text" id="modalAvailableStock" disabled style="background:#edf2f7;">
+            </div>
+            <div class="sell-input-group">
+                <label>Unit Price</label>
+                <input type="text" id="modalUnitPrice" disabled style="background:#edf2f7;">
+            </div>
+            <div class="sell-input-group">
+                <label>Quantity to Sell</label>
+                <input type="number" name="quantity" id="modalSellQuantity" min="1" value="1" required>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn-cancel" onclick="closeSellModal()">Cancel</button>
+                <button type="submit" class="btn-confirm">Confirm Sale</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function openSellModal(productId, productName, availableStock, unitPrice) {
+        document.getElementById('modalProductName').textContent = productName;
+        document.getElementById('modalAvailableStock').value = availableStock;
+        document.getElementById('modalUnitPrice').value = 'KSh ' + parseFloat(unitPrice).toFixed(2);
+        
+        const qtyInput = document.getElementById('modalSellQuantity');
+        qtyInput.max = availableStock;
+        qtyInput.value = 1;
+        
+        const form = document.getElementById('sellForm');
+        // Construct the URL dynamically based on current path logic
+        form.action = "{% url 'inventory' %}" + productId + "/sell/";
+        
+        document.getElementById('sellModal').classList.add('active');
+        qtyInput.focus();
+    }
+    
+    function closeSellModal() {
+        document.getElementById('sellModal').classList.remove('active');
+    }
+    
+    // Close modal if clicked outside
+    document.getElementById('sellModal').addEventListener('click', function(e) {
+        if (e.target === this) {
+            closeSellModal();
+        }
+    });
+</script>
+
+{% endblock %}

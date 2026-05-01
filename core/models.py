@@ -573,6 +573,51 @@ class TransactionLineItem(models.Model):
         return f"{self.description} ({self.quantity})"
 
 
+class ProductCategory(models.Model):
+    business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='product_categories')
+    name = models.CharField("Category Name", max_length=100)
+    
+    class Meta:
+        verbose_name_plural = "Product Categories"
+    
+    def __str__(self):
+        return self.name
+
+
+class Product(models.Model):
+    business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='products')
+    name = models.CharField("Product Name", max_length=255)
+    sku = models.CharField("SKU", max_length=100, blank=True, null=True)
+    category = models.ForeignKey(ProductCategory, on_delete=models.SET_NULL, null=True, blank=True, related_name='products')
+    price = models.DecimalField("Price", max_digits=10, decimal_places=2)
+    
+    class Meta:
+        unique_together = ['business', 'sku']
+
+    def __str__(self):
+        return self.name
+
+
+class Inventory(models.Model):
+    product = models.OneToOneField(Product, on_delete=models.CASCADE, related_name='inventory')
+    quantity = models.PositiveIntegerField("Quantity in Stock", default=0)
+    low_stock_threshold = models.PositiveIntegerField("Low Stock Threshold", default=5)
+    
+    class Meta:
+        verbose_name_plural = "Inventories"
+
+    def __str__(self):
+        return f"{self.product.name} - {self.quantity}"
+        
+    @property
+    def status(self):
+        if self.quantity == 0:
+            return 'Out of Stock'
+        elif self.quantity <= self.low_stock_threshold:
+            return 'Low Stock'
+        return 'In Stock'
+
+
 class Payment(models.Model):
     business = models.ForeignKey(BusinessProfile, on_delete=models.CASCADE, related_name='payments')
     amount = models.DecimalField("Amount", max_digits=12, decimal_places=2)

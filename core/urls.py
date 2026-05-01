@@ -60,6 +60,9 @@ urlpatterns = [
     path('supply-expenses/add/', views.SupplyExpenseCreateView.as_view(), name='supply_expense_add'),
     path('supply-expenses/<int:pk>/edit/', views.SupplyExpenseUpdateView.as_view(), name='supply_expense_edit'),
     path('supply-expenses/<int:pk>/delete/', views.SupplyExpenseDeleteView.as_view(), name='supply_expense_delete'),
+    # inventory
+    path('inventory/', views.InventoryView.as_view(), name='inventory'),
+    path('inventory/<int:product_id>/sell/', views.sell_product, name='inventory_sell'),
     # reporting and backup
     path('reports/', ReportIndexView.as_view(), name='report_index'),
     path('reports/daily/', DailyReportView.as_view(), name='daily_report'),
@@ -76,9 +79,6 @@ urlpatterns = [
     path('backup/', BackupView.as_view(), name='backup'),
     path('backup/download/', views.backup, name='backup_download'),
     path('restore/', RestoreView.as_view(), name='restore'),
-    path('debug-mnjala/', views.debug_mnjala, name='debug_mnjala'),
-    path('reset-mnjala/', views.reset_mnjala, name='reset_mnjala'),
-    path('run-migration/', views.run_migration, name='run_migration'),
     path('password_reset/', views.PasswordReset.as_view(), name='password_reset'),
     path('password_reset/done/', views.PasswordResetDone.as_view(), name='password_reset_done'),
     path('reset/<uidb64>/<token>/', views.PasswordResetConfirm.as_view(), name='password_reset_confirm'),

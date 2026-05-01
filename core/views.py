@@ -18,12 +18,12 @@ from django.contrib.auth.views import (
 from django.urls import reverse, reverse_lazy
 from django.conf import settings
 from django.db import transaction as db_transaction
-from django.db.models import Sum, Q, Count, Max
+from django.db.models import Sum, Q, Count, Max, F
 from django.http import Http404, HttpResponse
 from django.utils import timezone
 from datetime import datetime, timedelta
 from decimal import Decimal
-from .models import BusinessProfile, Client, Transaction, Expense, SupplyExpense
+from .models import BusinessProfile, Client, Transaction, Expense, SupplyExpense, ProductCategory, Product, Inventory
 from .auth_security import UserProfile
 from .business_access import get_business_access_state
 from .expense_utils import combined_expense_total, expense_breakdown_by_category, general_expenses_qs
@@ -135,6 +135,11 @@ class DashboardView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
                 business=business,
                 created_by=self.request.user,
                 balance__gt=0,
+            ).count(),
+            'low_stock_count': Inventory.objects.filter(
+                product__business=business, 
+                quantity__lte=F('low_stock_threshold'), 
+                quantity__gt=0
             ).count(),
             'recent_transactions': recent_transactions,
             'recent_clients': recent_clients,
@@ -264,7 +269,15 @@ class DashboardView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
         # Year options for dropdown
         years = list(range(selected_year - 2, selected_year + 3))
 
+        # Low stock count for badge
+        low_stock_count = Inventory.objects.filter(
+            product__business=business, 
+            quantity__lte=F('low_stock_threshold'), 
+            quantity__gt=0
+        ).count()
+
         context.update({
+            'low_stock_count': low_stock_count,
             'today_revenue': daily_revenue,
             'today_expenses': daily_expenses,
             'today_expense_breakdown_labels': [row['category'] for row in today_expense_breakdown],
@@ -2238,3 +2251,118 @@ def run_migration(request):
     thread.start()
 
     return HttpResponse('Migration has been started in the background! Please wait about 30-60 seconds, then try logging in normally.', content_type='text/plain')
+
+from django.db.models import F
+from django.shortcuts import get_object_or_404
+from django.contrib.auth.decorators import login_required
+from .models import TransactionLineItem
+
+class InventoryView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
+    template_name = 'core/inventory.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        business = self.get_business()
+        
+        inventories = Inventory.objects.filter(product__business=business).select_related('product', 'product__category')
+        
+        search = self.request.GET.get('search', '').strip()
+        if search:
+            inventories = inventories.filter(
+                Q(product__name__icontains=search) |
+                Q(product__sku__icontains=search)
+            )
+            
+        category_id = self.request.GET.get('category')
+        if category_id:
+            try:
+                category_id = int(category_id)
+                inventories = inventories.filter(product__category_id=category_id)
+            except ValueError:
+                pass
+            
+        status_filter = self.request.GET.get('status')
+        if status_filter == 'low_stock':
+            inventories = inventories.filter(quantity__lte=F('low_stock_threshold'), quantity__gt=0)
+        elif status_filter == 'out_of_stock':
+            inventories = inventories.filter(quantity=0)
+            
+        categories = ProductCategory.objects.filter(business=business)
+        
+        low_stock_count = Inventory.objects.filter(product__business=business, quantity__lte=F('low_stock_threshold'), quantity__gt=0).count()
+        out_of_stock_count = Inventory.objects.filter(product__business=business, quantity=0).count()
+        total_products = Inventory.objects.filter(product__business=business).count()
+        
+        context.update({
+            'inventories': inventories,
+            'categories': categories,
+            'search': search,
+            'selected_category': category_id,
+            'selected_status': status_filter,
+            'low_stock_count': low_stock_count,
+            'out_of_stock_count': out_of_stock_count,
+            'total_products': total_products,
+        })
+        return context
+
+@login_required
+def sell_product(request, product_id):
+    if request.method == 'POST':
+        product = get_object_or_404(Product, id=product_id)
+        
+        # Verify user has access to this business
+        try:
+            business = get_user_business(request.user)
+            if product.business != business:
+                messages.error(request, "Not authorized to sell this product.")
+                return redirect('inventory')
+        except Exception:
+            messages.error(request, "Not authorized.")
+            return redirect('inventory')
+        
+        try:
+            inventory = product.inventory
+        except Inventory.DoesNotExist:
+            messages.error(request, "Inventory record not found for this product.")
+            return redirect('inventory')
+            
+        try:
+            quantity_to_sell = int(request.POST.get('quantity', 1))
+        except ValueError:
+            quantity_to_sell = 1
+        
+        if quantity_to_sell <= 0:
+            messages.error(request, "Quantity must be greater than zero.")
+            return redirect('inventory')
+            
+        if inventory.quantity >= quantity_to_sell:
+            with db_transaction.atomic():
+                inventory.quantity -= quantity_to_sell
+                inventory.save()
+                
+                # Create quick transaction
+                transaction = Transaction.objects.create(
+                    business=product.business,
+                    created_by=request.user,
+                    service_name=f"POS Sale: {product.name}",
+                    unit_price=product.price,
+                    quantity=quantity_to_sell,
+                    amount_paid=product.price * quantity_to_sell,
+                    status=Transaction.PAID
+                )
+                # Create line item
+                TransactionLineItem.objects.create(
+                    transaction=transaction,
+                    description=product.name,
+                    quantity=quantity_to_sell,
+                    unit_price=product.price,
+                    line_total=product.price * quantity_to_sell
+                )
+                transaction.recalculate_totals()
+                transaction.save()
+                
+            messages.success(request, f"Successfully sold {quantity_to_sell} of {product.name}.")
+        else:
+            messages.error(request, f"Not enough stock for {product.name}.")
+            
+    return redirect('inventory')
