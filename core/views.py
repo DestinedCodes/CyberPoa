@@ -28,7 +28,7 @@ from .auth_security import UserProfile
 from .business_access import get_business_access_state
 from .expense_utils import combined_expense_total, expense_breakdown_by_category, general_expenses_qs
 from .forms import BusinessProfileForm, ClientForm, TransactionForm, ExpenseForm, RegistrationForm, StaffUserCreationForm, TeamMemberUpdateForm, SupplyExpenseForm, SupplyExpenseLineItemFormSet, InvoiceSettingsForm, TransactionLineItemFormSet, ProductForm, ProductCategoryForm
-from .permissions import AdminRequiredMixin, ExpenseRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, get_user_role
+from .permissions import AdminRequiredMixin, ExpenseRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, can_manage_business, get_user_role
 from .tenancy import BusinessFormMixin, BusinessScopedQuerysetMixin, UserBusinessMixin, get_user_business
 
 
@@ -2260,6 +2260,42 @@ from .models import TransactionLineItem
 class InventoryView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
     template_name = 'core/inventory.html'
 
+    def get(self, request, *args, **kwargs):
+        context = self.get_context_data(
+            product_form=ProductForm(business=self.get_business()),
+            category_form=ProductCategoryForm(business=self.get_business()),
+        )
+        return self.render_to_response(context)
+
+    def post(self, request, *args, **kwargs):
+        business = self.get_business()
+        if not can_manage_business(request.user):
+            messages.error(request, 'Only the business owner can add products or categories.')
+            return redirect('inventory')
+
+        form_type = request.POST.get('form_type')
+        product_form = ProductForm(business=business)
+        category_form = ProductCategoryForm(business=business)
+
+        if form_type == 'category':
+            category_form = ProductCategoryForm(request.POST, business=business)
+            if category_form.is_valid():
+                category = category_form.save()
+                messages.success(request, f'Category "{category.name}" created successfully.')
+                return redirect('inventory')
+        else:
+            product_form = ProductForm(request.POST, business=business)
+            if product_form.is_valid():
+                product = product_form.save()
+                messages.success(request, f'Product "{product.name}" added successfully.')
+                return redirect('inventory')
+
+        context = self.get_context_data(
+            product_form=product_form,
+            category_form=category_form,
+        )
+        return self.render_to_response(context)
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         business = self.get_business()
@@ -2296,6 +2332,9 @@ class InventoryView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
         context.update({
             'inventories': inventories,
             'categories': categories,
+            'product_form': kwargs.get('product_form') or ProductForm(business=business),
+            'category_form': kwargs.get('category_form') or ProductCategoryForm(business=business),
+            'can_manage_inventory': can_manage_business(self.request.user),
             'search': search,
             'selected_category': category_id,
             'selected_status': status_filter,
