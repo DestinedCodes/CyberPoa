@@ -5,7 +5,7 @@ from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
 from django.db.models import Sum
 
-from .models import BusinessProfile, Client, Transaction, TransactionLineItem, Expense, SupplyExpense, SupplyExpenseLineItem
+from .models import BusinessProfile, Client, Transaction, TransactionLineItem, Expense, SupplyExpense, SupplyExpenseLineItem, Product, ProductCategory, Inventory
 from .auth_security import UserProfile
 
 
@@ -467,3 +467,80 @@ class TeamMemberUpdateForm(forms.ModelForm):
                 self.profile.save(update_fields=['business', 'role'])
 
         return user
+
+class ProductCategoryForm(forms.ModelForm):
+    class Meta:
+        model = ProductCategory
+        fields = ['name']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Electronics, Services'}),
+        }
+
+    def __init__(self, *args, business=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business or getattr(self.instance, 'business', None)
+
+    def save(self, commit=True):
+        category = super().save(commit=False)
+        if not self.business:
+            raise ValidationError("A business is required for each category.")
+        category.business = self.business
+        if commit:
+            category.save()
+        return category
+
+class ProductForm(forms.ModelForm):
+    quantity = forms.IntegerField(
+        label='Initial Stock Quantity',
+        min_value=0,
+        initial=0,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+    low_stock_threshold = forms.IntegerField(
+        label='Low Stock Alert Threshold',
+        min_value=0,
+        initial=5,
+        widget=forms.NumberInput(attrs={'class': 'form-control'})
+    )
+
+    class Meta:
+        model = Product
+        fields = ['name', 'sku', 'category', 'price']
+        widgets = {
+            'name': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Product Name'}),
+            'sku': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Optional SKU or Barcode'}),
+            'category': forms.Select(attrs={'class': 'form-control'}),
+            'price': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+        }
+
+    def __init__(self, *args, business=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.business = business or getattr(self.instance, 'business', None)
+
+        if self.business:
+            self.fields['category'].queryset = ProductCategory.objects.filter(business=self.business)
+
+        if self.instance.pk:
+            # Populate inventory fields if editing an existing product
+            try:
+                inventory = self.instance.inventory
+                self.fields['quantity'].initial = inventory.quantity
+                self.fields['low_stock_threshold'].initial = inventory.low_stock_threshold
+            except Inventory.DoesNotExist:
+                pass
+
+    def save(self, commit=True):
+        product = super().save(commit=False)
+        if not self.business:
+            raise ValidationError("A business is required for each product.")
+        product.business = self.business
+
+        if commit:
+            product.save()
+            # Handle inventory
+            inventory, created = Inventory.objects.get_or_create(product=product)
+            inventory.quantity = self.cleaned_data['quantity']
+            inventory.low_stock_threshold = self.cleaned_data['low_stock_threshold']
+            inventory.save()
+
+        return product

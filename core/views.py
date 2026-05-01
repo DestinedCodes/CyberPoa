@@ -27,7 +27,7 @@ from .models import BusinessProfile, Client, Transaction, Expense, SupplyExpense
 from .auth_security import UserProfile
 from .business_access import get_business_access_state
 from .expense_utils import combined_expense_total, expense_breakdown_by_category, general_expenses_qs
-from .forms import BusinessProfileForm, ClientForm, TransactionForm, ExpenseForm, RegistrationForm, StaffUserCreationForm, TeamMemberUpdateForm, SupplyExpenseForm, SupplyExpenseLineItemFormSet, InvoiceSettingsForm, TransactionLineItemFormSet
+from .forms import BusinessProfileForm, ClientForm, TransactionForm, ExpenseForm, RegistrationForm, StaffUserCreationForm, TeamMemberUpdateForm, SupplyExpenseForm, SupplyExpenseLineItemFormSet, InvoiceSettingsForm, TransactionLineItemFormSet, ProductForm, ProductCategoryForm
 from .permissions import AdminRequiredMixin, ExpenseRequiredMixin, RecordsRequiredMixin, ReportsRequiredMixin, can_backup_restore, get_user_role
 from .tenancy import BusinessFormMixin, BusinessScopedQuerysetMixin, UserBusinessMixin, get_user_business
 
