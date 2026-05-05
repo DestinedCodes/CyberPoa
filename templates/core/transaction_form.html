@@ -1,136 +1,383 @@
 {% extends 'base.html' %}
 {% block title %}{% if object %}Edit{% else %}Add{% endif %} Transaction{% endblock %}
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem;">
-    <h2 style="margin:0;">{% if object %}Edit{% else %}Add{% endif %} Transaction</h2>
-    {% if app_role == 'staff' and not object %}
-        <a href="{% url 'dashboard' %}" class="btn btn-light">Back to Transaction Desk</a>
-    {% else %}
-        <a href="{% url 'transaction_list' %}" class="btn btn-light">Back to Transactions</a>
-    {% endif %}
+<style>
+    .transaction-entry-header,
+    .transaction-entry-actions,
+    .transaction-panel-header,
+    .transaction-form-actions {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .transaction-entry-header {
+        margin-bottom: 1rem;
+    }
+
+    .transaction-entry-title {
+        margin: 0;
+    }
+
+    .transaction-entry-shell {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .transaction-panel {
+        border: 1px solid #e9ecef;
+        border-radius: 14px;
+        overflow: hidden;
+        background: #fff;
+    }
+
+    .transaction-panel-header {
+        padding: 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .transaction-panel-title {
+        font-weight: 700;
+        color: #212529;
+    }
+
+    .transaction-panel-copy,
+    .transaction-help {
+        font-size: 0.85rem;
+        color: #6c757d;
+    }
+
+    .transaction-label {
+        display: block;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+    }
+
+    .quick-service-row {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        padding: 0 1rem 1rem;
+        background: #f8f9fa;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .quick-service {
+        border: 1px solid #d7dce2;
+        background: #fff;
+        color: #334155;
+        border-radius: 999px;
+        padding: 0.45rem 0.75rem;
+        font-size: 0.88rem;
+        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .quick-service:hover {
+        border-color: #667eea;
+        color: #4f46e5;
+    }
+
+    .transaction-summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .transaction-summary-card {
+        padding: 1rem;
+        border: 1px solid #e9ecef;
+        border-radius: 10px;
+        background: #f8f9fa;
+    }
+
+    .transaction-summary-label {
+        font-size: 0.85rem;
+        color: #6c757d;
+        margin-bottom: 0.4rem;
+    }
+
+    .transaction-summary-value {
+        font-size: 1.45rem;
+        font-weight: 700;
+        color: #495057;
+    }
+
+    .transaction-summary-total {
+        background: #ecfdf5;
+    }
+
+    .transaction-summary-total .transaction-summary-label,
+    .transaction-summary-total .transaction-summary-value {
+        color: #166534;
+    }
+
+    .transaction-status-pill {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 92px;
+        border-radius: 999px;
+        padding: 0.35rem 0.7rem;
+        font-weight: 700;
+        font-size: 0.85rem;
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .transaction-status-pill.is-paid {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .transaction-status-pill.is-partial {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    .transaction-balance-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.75rem;
+    }
+
+    .transaction-error {
+        color: #dc3545;
+        font-size: 0.85rem;
+        margin-top: 0.25rem;
+    }
+
+    .transaction-error-block {
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+    }
+
+    .remove-item {
+        min-width: 42px;
+        padding-inline: 0.75rem;
+    }
+
+    .line-total {
+        font-weight: 700;
+        padding-top: 0.45rem;
+    }
+
+    @media (max-width: 768px) {
+        .transaction-items-table thead {
+            display: none;
+        }
+
+        .transaction-items-table,
+        .transaction-items-table tbody,
+        .transaction-items-table tr,
+        .transaction-items-table td {
+            display: block;
+            width: 100%;
+        }
+
+        .transaction-items-table tr {
+            padding: 0.9rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .transaction-items-table td {
+            border: none;
+            padding: 0.45rem 0;
+        }
+
+        .transaction-items-table td::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 0.3rem;
+        }
+
+        .line-total {
+            padding-top: 0;
+        }
+
+        .remove-item,
+        .transaction-form-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+
+<div class="transaction-entry-header">
+    <div>
+        <h2 class="transaction-entry-title">{% if object %}Edit{% else %}Add{% endif %} Transaction</h2>
+        <div class="transaction-help">Record the sale, confirm payment, and keep the desk moving.</div>
+    </div>
+    <div class="transaction-entry-actions">
+        {% if app_role == 'staff' and not object %}
+            <a href="{% url 'dashboard' %}" class="btn btn-light">Back to Transaction Desk</a>
+        {% else %}
+            <a href="{% url 'transaction_list' %}" class="btn btn-light">Back to Transactions</a>
+        {% endif %}
+    </div>
 </div>
 
-<form method="post">
+<form method="post" id="transactionEntryForm" data-auto-fill-paid="{% if object %}false{% else %}true{% endif %}">
     {% csrf_token %}
-    <div class="row g-3" style="margin-bottom:1rem;">
-        <div class="col-12 col-md-4">
-            <label for="{{ form.date.id_for_label }}" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ form.date.label }}</label>
-            {{ form.date }}
+    <div class="transaction-entry-shell">
+        <div class="row g-3">
+            <div class="col-12 col-md-4">
+                <label for="{{ form.date.id_for_label }}" class="transaction-label">{{ form.date.label }}</label>
+                {{ form.date }}
+            </div>
+            <div class="col-12 col-md-4">
+                <label for="{{ form.client_name.id_for_label }}" class="transaction-label">{{ form.client_name.label }}</label>
+                {{ form.client_name }}
+                {% if form.client_name.help_text %}
+                    <div class="transaction-help">{{ form.client_name.help_text }}</div>
+                {% endif %}
+            </div>
+            <div class="col-12 col-md-2">
+                <label for="{{ form.amount_paid.id_for_label }}" class="transaction-label">{{ form.amount_paid.label }}</label>
+                {{ form.amount_paid }}
+                <div class="transaction-help">Auto-fills for fully paid sales.</div>
+            </div>
+            <div class="col-12 col-md-2">
+                <label for="{{ form.invoice_tax_rate.id_for_label }}" class="transaction-label">Tax Rate (%)</label>
+                {{ form.invoice_tax_rate }}
+            </div>
         </div>
-        <div class="col-12 col-md-4">
-            <label for="{{ form.client_name.id_for_label }}" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ form.client_name.label }}</label>
-            {{ form.client_name }}
-            {% if form.client_name.help_text %}
-                <div style="font-size:0.85rem; color:#6c757d; margin-top:0.25rem;">{{ form.client_name.help_text }}</div>
+
+        {% for field in form %}
+            {% if field.name != 'date' and field.name != 'client_name' and field.name != 'amount_paid' and field.name != 'invoice_tax_rate' %}
+                <div style="display:none;">{{ field }}</div>
+            {% endif %}
+        {% endfor %}
+
+        {{ item_formset.management_form }}
+        <div class="transaction-panel">
+            <div class="transaction-panel-header">
+                <div>
+                    <div class="transaction-panel-title">Line Items</div>
+                    <div class="transaction-panel-copy">Choose a common service or type a custom one.</div>
+                </div>
+                <button type="button" id="addItemButton" class="btn btn-light">Add Item</button>
+            </div>
+            <div class="quick-service-row" aria-label="Common services">
+                <button type="button" class="quick-service" data-service="Printing">Printing</button>
+                <button type="button" class="quick-service" data-service="Photocopy">Photocopy</button>
+                <button type="button" class="quick-service" data-service="Scanning">Scanning</button>
+                <button type="button" class="quick-service" data-service="Typing">Typing</button>
+                <button type="button" class="quick-service" data-service="Lamination">Lamination</button>
+                <button type="button" class="quick-service" data-service="KRA Services">KRA Services</button>
+                <button type="button" class="quick-service" data-service="HELB Services">HELB Services</button>
+            </div>
+            <div class="table-responsive">
+                <table class="table transaction-items-table" style="margin:0;">
+                    <thead>
+                        <tr>
+                            <th>Service Name</th>
+                            <th style="width:120px;">Units</th>
+                            <th style="width:160px;">Unit Price</th>
+                            <th style="width:160px;">Total</th>
+                            <th style="width:90px;">Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody id="itemRows">
+                        {% for item_form in item_formset %}
+                            <tr class="item-row">
+                                <td data-label="Service Name">
+                                    {{ item_form.id }}
+                                    {{ item_form.description }}
+                                    {% for error in item_form.description.errors %}
+                                        <div class="transaction-error">{{ error }}</div>
+                                    {% endfor %}
+                                </td>
+                                <td data-label="Units">
+                                    {{ item_form.quantity }}
+                                    {% for error in item_form.quantity.errors %}
+                                        <div class="transaction-error">{{ error }}</div>
+                                    {% endfor %}
+                                </td>
+                                <td data-label="Unit Price">
+                                    {{ item_form.unit_price }}
+                                    {% for error in item_form.unit_price.errors %}
+                                        <div class="transaction-error">{{ error }}</div>
+                                    {% endfor %}
+                                </td>
+                                <td data-label="Total">
+                                    <div class="line-total">0.00</div>
+                                </td>
+                                <td data-label="Remove">
+                                    <div style="display:none;">{{ item_form.DELETE }}</div>
+                                    <button type="button" class="btn btn-sm btn-danger remove-item" aria-label="Remove item">X</button>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="transaction-summary-grid">
+            <div class="transaction-summary-card">
+                <div class="transaction-summary-label">Subtotal</div>
+                <div id="subtotalPreview" class="transaction-summary-value">0.00</div>
+            </div>
+            <div class="transaction-summary-card">
+                <div class="transaction-summary-label">Tax</div>
+                <div id="taxPreview" class="transaction-summary-value" style="color:#b45309;">0.00</div>
+            </div>
+            <div class="transaction-summary-card transaction-summary-total">
+                <div class="transaction-summary-label">Final Total</div>
+                <div id="expectedTotalPreview" class="transaction-summary-value">0.00</div>
+            </div>
+            <div class="transaction-summary-card">
+                <div class="transaction-summary-label">Payment</div>
+                <div class="transaction-balance-row">
+                    <div id="balancePreview" class="transaction-summary-value">0.00</div>
+                    <span id="statusPreview" class="transaction-status-pill">Unpaid</span>
+                </div>
+            </div>
+        </div>
+
+        {% for error in form.non_field_errors %}
+            <div class="transaction-error transaction-error-block">{{ error }}</div>
+        {% endfor %}
+        {% for error in item_formset.non_form_errors %}
+            <div class="transaction-error transaction-error-block">{{ error }}</div>
+        {% endfor %}
+
+        <div class="transaction-form-actions">
+            <button type="submit" class="btn">Save Transaction</button>
+            {% if not object %}
+                <button type="submit" name="save_and_new" value="1" class="btn btn-light">Save & Add Another</button>
             {% endif %}
         </div>
-        <div class="col-12 col-md-2">
-            <label for="{{ form.amount_paid.id_for_label }}" style="display:block; font-weight:600; margin-bottom:0.35rem;">{{ form.amount_paid.label }}</label>
-            {{ form.amount_paid }}
-        </div>
-        <div class="col-12 col-md-2">
-            <label for="{{ form.invoice_tax_rate.id_for_label }}" style="display:block; font-weight:600; margin-bottom:0.35rem;">Tax Rate (%)</label>
-            {{ form.invoice_tax_rate }}
-        </div>
     </div>
-
-    {% for field in form %}
-        {% if field.name != 'date' and field.name != 'client_name' and field.name != 'amount_paid' and field.name != 'invoice_tax_rate' %}
-            <div style="display:none;">{{ field }}</div>
-        {% endif %}
-    {% endfor %}
-
-    {{ item_formset.management_form }}
-    <div style="border:1px solid #e9ecef; border-radius:14px; overflow:hidden; margin-bottom:1rem;">
-        <div style="padding:1rem; background:#f8f9fa; border-bottom:1px solid #e9ecef; display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
-            <div>
-                <div style="font-weight:700; color:#212529;">Line Items</div>
-                <div style="font-size:0.85rem; color:#6c757d;">Add multiple services under one transaction.</div>
-            </div>
-            <button type="button" id="addItemButton" class="btn btn-light">Add Item</button>
-        </div>
-        <div class="table-responsive">
-            <table class="table" style="margin:0;">
-                <thead>
-                    <tr>
-                        <th>Service Name</th>
-                        <th style="width:120px;">Units</th>
-                        <th style="width:160px;">Unit Price</th>
-                        <th style="width:160px;">Total</th>
-                        <th style="width:90px;">Remove</th>
-                    </tr>
-                </thead>
-                <tbody id="itemRows">
-                    {% for item_form in item_formset %}
-                        <tr class="item-row">
-                            <td>
-                                {{ item_form.id }}
-                                {{ item_form.description }}
-                                {% for error in item_form.description.errors %}
-                                    <div style="color:#dc3545; font-size:0.85rem; margin-top:0.25rem;">{{ error }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {{ item_form.quantity }}
-                                {% for error in item_form.quantity.errors %}
-                                    <div style="color:#dc3545; font-size:0.85rem; margin-top:0.25rem;">{{ error }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                {{ item_form.unit_price }}
-                                {% for error in item_form.unit_price.errors %}
-                                    <div style="color:#dc3545; font-size:0.85rem; margin-top:0.25rem;">{{ error }}</div>
-                                {% endfor %}
-                            </td>
-                            <td>
-                                <div class="line-total" style="font-weight:700; padding-top:0.45rem;">0.00</div>
-                            </td>
-                            <td>
-                                <div style="display:none;">{{ item_form.DELETE }}</div>
-                                <button type="button" class="btn btn-sm btn-danger remove-item">Remove</button>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
-        </div>
-    </div>
-
-    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:1rem; margin-bottom:1rem;">
-        <div style="padding:1rem; border:1px solid #e9ecef; border-radius:10px; background:#f8f9fa;">
-            <div style="font-size:0.85rem; color:#6c757d; margin-bottom:0.4rem;">Subtotal</div>
-            <div id="subtotalPreview" style="font-size:1.5rem; font-weight:700; color:#495057;">0.00</div>
-        </div>
-        <div style="padding:1rem; border:1px solid #e9ecef; border-radius:10px; background:#f8f9fa;">
-            <div style="font-size:0.85rem; color:#6c757d; margin-bottom:0.4rem;">Tax</div>
-            <div id="taxPreview" style="font-size:1.5rem; font-weight:700; color:#b45309;">0.00</div>
-        </div>
-        <div style="padding:1rem; border:1px solid #e9ecef; border-radius:10px; background:#f8f9fa;">
-            <div style="font-size:0.85rem; color:#6c757d; margin-bottom:0.4rem;">Final Total</div>
-            <div id="expectedTotalPreview" style="font-size:1.6rem; font-weight:700; color:#15803d;">0.00</div>
-        </div>
-    </div>
-
-    {% for error in form.non_field_errors %}
-        <div style="color:#dc3545; font-size:0.9rem; margin-bottom:1rem;">{{ error }}</div>
-    {% endfor %}
-    {% for error in item_formset.non_form_errors %}
-        <div style="color:#dc3545; font-size:0.9rem; margin-bottom:1rem;">{{ error }}</div>
-    {% endfor %}
-    <button type="submit" class="btn">Save Transaction</button>
 </form>
 
 <script>
 (() => {
+    const form = document.getElementById('transactionEntryForm');
     const rowsContainer = document.getElementById('itemRows');
     const addItemButton = document.getElementById('addItemButton');
     const totalForms = document.getElementById('id_items-TOTAL_FORMS');
     const subtotalPreview = document.getElementById('subtotalPreview');
     const taxPreview = document.getElementById('taxPreview');
     const totalPreview = document.getElementById('expectedTotalPreview');
+    const balancePreview = document.getElementById('balancePreview');
+    const statusPreview = document.getElementById('statusPreview');
     const taxRateField = document.getElementById('id_invoice_tax_rate');
+    const amountPaidField = document.getElementById('id_amount_paid');
+    let autoFillPaid = form?.dataset.autoFillPaid === 'true';
+    let lastAutoPaidValue = '';
 
-    if (!rowsContainer || !addItemButton || !totalForms || !subtotalPreview || !taxPreview || !totalPreview) {
+    if (!rowsContainer || !addItemButton || !totalForms || !subtotalPreview || !taxPreview || !totalPreview || !balancePreview || !statusPreview) {
         return;
     }
 
@@ -141,6 +388,11 @@
         return value.toFixed(2);
     };
 
+    const getActiveRows = () => Array.from(rowsContainer.querySelectorAll('.item-row')).filter((row) => {
+        const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
+        return !(deleteInput && deleteInput.checked);
+    });
+
     const updateRowTotal = (row) => {
         const quantity = parseFloat(row.querySelector('.item-quantity')?.value) || 0;
         const unitPrice = parseFloat(row.querySelector('.item-unit-price')?.value) || 0;
@@ -150,6 +402,23 @@
             totalCell.textContent = formatAmount(rowTotal);
         }
         return rowTotal;
+    };
+
+    const updatePaymentState = (total) => {
+        const paid = parseFloat(amountPaidField?.value) || 0;
+        const balance = total - paid;
+        balancePreview.textContent = formatAmount(Math.max(balance, 0));
+        statusPreview.classList.remove('is-paid', 'is-partial');
+
+        if (total > 0 && balance <= 0) {
+            statusPreview.textContent = 'Paid';
+            statusPreview.classList.add('is-paid');
+        } else if (paid > 0 && paid < total) {
+            statusPreview.textContent = 'Partial';
+            statusPreview.classList.add('is-partial');
+        } else {
+            statusPreview.textContent = 'Unpaid';
+        }
     };
 
     const syncTotals = () => {
@@ -164,20 +433,34 @@
         });
         const taxRate = parseFloat(taxRateField?.value) || 0;
         const taxAmount = subtotal * (taxRate / 100);
+        const finalTotal = subtotal + taxAmount;
+        const formattedTotal = formatAmount(finalTotal);
+
         subtotalPreview.textContent = formatAmount(subtotal);
         taxPreview.textContent = formatAmount(taxAmount);
-        totalPreview.textContent = formatAmount(subtotal + taxAmount);
+        totalPreview.textContent = formattedTotal;
+
+        if (amountPaidField && autoFillPaid) {
+            amountPaidField.value = formattedTotal;
+            lastAutoPaidValue = formattedTotal;
+        }
+
+        updatePaymentState(finalTotal);
     };
 
     const bindRow = (row) => {
-        row.querySelectorAll('.item-quantity, .item-unit-price').forEach((input) => {
+        row.querySelectorAll('.item-description, .item-quantity, .item-unit-price').forEach((input) => {
             input.addEventListener('input', syncTotals);
         });
         const removeButton = row.querySelector('.remove-item');
         const deleteInput = row.querySelector('input[type="checkbox"][name$="-DELETE"]');
         if (removeButton) {
             removeButton.addEventListener('click', () => {
-                if (deleteInput) {
+                if (getActiveRows().length === 1) {
+                    row.querySelectorAll('.item-description, .item-quantity, .item-unit-price').forEach((input) => {
+                        input.value = input.classList.contains('item-quantity') ? '1' : '';
+                    });
+                } else if (deleteInput) {
                     deleteInput.checked = true;
                 } else {
                     row.remove();
@@ -187,13 +470,11 @@
         }
     };
 
-    rowsContainer.querySelectorAll('.item-row').forEach(bindRow);
-
-    addItemButton.addEventListener('click', () => {
+    const addRow = () => {
         const formIndex = parseInt(totalForms.value, 10);
         const templateRow = rowsContainer.querySelector('.item-row');
         if (!templateRow) {
-            return;
+            return null;
         }
 
         const clone = templateRow.cloneNode(true);
@@ -203,7 +484,7 @@
             if (input.type === 'checkbox') {
                 input.checked = false;
             } else if (input.type !== 'hidden') {
-                input.value = '';
+                input.value = input.classList.contains('item-quantity') ? '1' : '';
             }
         });
 
@@ -221,12 +502,59 @@
         totalForms.value = formIndex + 1;
         bindRow(clone);
         syncTotals();
+        return clone;
+    };
+
+    const getRowForQuickService = () => {
+        const emptyRow = getActiveRows().find((row) => {
+            const description = row.querySelector('.item-description')?.value.trim();
+            const unitPrice = row.querySelector('.item-unit-price')?.value.trim();
+            return !description && !unitPrice;
+        });
+        return emptyRow || addRow();
+    };
+
+    rowsContainer.querySelectorAll('.item-row').forEach(bindRow);
+
+    addItemButton.addEventListener('click', () => {
+        const row = addRow();
+        row?.querySelector('.item-description')?.focus();
+    });
+
+    document.querySelectorAll('.quick-service').forEach((button) => {
+        button.addEventListener('click', () => {
+            const row = getRowForQuickService();
+            if (!row) {
+                return;
+            }
+            const description = row.querySelector('.item-description');
+            const quantity = row.querySelector('.item-quantity');
+            const unitPrice = row.querySelector('.item-unit-price');
+            if (description) {
+                description.value = button.dataset.service || '';
+            }
+            if (quantity && !quantity.value) {
+                quantity.value = '1';
+            }
+            syncTotals();
+            unitPrice?.focus();
+        });
     });
 
     if (taxRateField) {
         taxRateField.addEventListener('input', syncTotals);
     }
 
+    if (amountPaidField) {
+        amountPaidField.addEventListener('input', () => {
+            if (amountPaidField.value !== lastAutoPaidValue) {
+                autoFillPaid = false;
+            }
+            syncTotals();
+        });
+    }
+
+    rowsContainer.querySelector('.item-description')?.focus();
     syncTotals();
 })();
 </script>

@@ -141,6 +141,13 @@ class DashboardView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
                 quantity__lte=F('low_stock_threshold'), 
                 quantity__gt=0
             ).count(),
+            'out_of_stock_count': Inventory.objects.filter(
+                product__business=business,
+                quantity=0,
+            ).count(),
+            'total_products': Inventory.objects.filter(
+                product__business=business,
+            ).count(),
             'recent_transactions': recent_transactions,
             'recent_clients': recent_clients,
             'selected_date': today.isoformat(),
@@ -275,9 +282,18 @@ class DashboardView(LoginRequiredMixin, UserBusinessMixin, TemplateView):
             quantity__lte=F('low_stock_threshold'), 
             quantity__gt=0
         ).count()
+        out_of_stock_count = Inventory.objects.filter(
+            product__business=business,
+            quantity=0,
+        ).count()
+        total_products = Inventory.objects.filter(
+            product__business=business,
+        ).count()
 
         context.update({
+            'total_products': total_products,
             'low_stock_count': low_stock_count,
+            'out_of_stock_count': out_of_stock_count,
             'today_revenue': daily_revenue,
             'today_expenses': daily_expenses,
             'today_expense_breakdown_labels': [row['category'] for row in today_expense_breakdown],
@@ -1632,6 +1648,8 @@ class TransactionCreateView(LoginRequiredMixin, RecordsRequiredMixin, BusinessFo
     success_url = reverse_lazy('transaction_list')
 
     def get_success_url(self):
+        if self.request.POST.get('save_and_new'):
+            return reverse('transaction_add')
         if get_user_role(self.request.user) == 'staff':
             return reverse('dashboard')
         return str(self.success_url)
