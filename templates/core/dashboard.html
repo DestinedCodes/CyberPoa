@@ -106,20 +106,35 @@
             </div>
         </a>
         
-        <a href="{% url 'inventory' %}" class="card-link">
+        <a href="{% url 'product_list' %}" class="card-link">
             <div class="metric-card" style="border-left: 4px solid #f6ad55; background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(254,235,200,0.3) 100%);">
                 <div class="metric-icon" style="background: rgba(246, 173, 85, 0.2); color: #dd6b20;">📦</div>
                 <div class="metric-content">
-                    <h3 style="display:flex; justify-content:space-between; align-items:center;">
-                        Inventory
-                        {% if low_stock_count > 0 %}
-                        <span style="background: #e53e3e; color: white; border-radius: 9999px; padding: 2px 8px; font-size: 0.75rem; font-weight: bold;">
-                            {{ low_stock_count }} Low
-                        </span>
-                        {% endif %}
-                    </h3>
-                    <div class="metric-value" style="font-size:1.1rem; margin-top:5px; color:#4a5568;">Manage Stock</div>
-                    <div class="metric-change" style="color: #dd6b20;">View All Products</div>
+                    <h3>Total Products</h3>
+                    <div class="metric-value">{{ total_products }}</div>
+                    <div class="metric-change" style="color: #2b6cb0;">View all available products</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'product_list' %}?status=low_stock" class="card-link">
+            <div class="metric-card" style="border-left: 4px solid #dd6b20; background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(254,235,200,0.5) 100%);">
+                <div class="metric-icon" style="background: rgba(221, 107, 32, 0.18); color: #c05621;">⚠️</div>
+                <div class="metric-content">
+                    <h3>Low Stock</h3>
+                    <div class="metric-value">{{ low_stock_count }}</div>
+                    <div class="metric-change" style="color: #c05621;">Open low stock products</div>
+                </div>
+            </div>
+        </a>
+
+        <a href="{% url 'product_list' %}?status=out_of_stock" class="card-link">
+            <div class="metric-card" style="border-left: 4px solid #e53e3e; background: linear-gradient(135deg, rgba(255,255,255,1) 0%, rgba(254,215,215,0.55) 100%);">
+                <div class="metric-icon" style="background: rgba(229, 62, 62, 0.18); color: #c53030;">🔴</div>
+                <div class="metric-content">
+                    <h3>Out of Stock</h3>
+                    <div class="metric-value">{{ out_of_stock_count }}</div>
+                    <div class="metric-change" style="color: #c53030;">Open out-of-stock products</div>
                 </div>
             </div>
         </a>
