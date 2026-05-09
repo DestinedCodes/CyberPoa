@@ -247,13 +247,17 @@
                 <div class="transaction-help">Auto-fills for fully paid sales.</div>
             </div>
             <div class="col-12 col-md-2">
+                <label for="{{ form.invoice_discount.id_for_label }}" class="transaction-label">Discount Amount</label>
+                {{ form.invoice_discount }}
+            </div>
+            <div class="col-12 col-md-2">
                 <label for="{{ form.invoice_tax_rate.id_for_label }}" class="transaction-label">Tax Rate (%)</label>
                 {{ form.invoice_tax_rate }}
             </div>
         </div>
 
         {% for field in form %}
-            {% if field.name != 'date' and field.name != 'client_name' and field.name != 'amount_paid' and field.name != 'invoice_tax_rate' %}
+            {% if field.name != 'date' and field.name != 'client_name' and field.name != 'amount_paid' and field.name != 'invoice_discount' and field.name != 'invoice_tax_rate' %}
                 <div style="display:none;">{{ field }}</div>
             {% endif %}
         {% endfor %}
@@ -329,6 +333,10 @@
                 <div id="subtotalPreview" class="transaction-summary-value">0.00</div>
             </div>
             <div class="transaction-summary-card">
+                <div class="transaction-summary-label">Discount</div>
+                <div id="discountPreview" class="transaction-summary-value" style="color:#0f766e;">0.00</div>
+            </div>
+            <div class="transaction-summary-card">
                 <div class="transaction-summary-label">Tax</div>
                 <div id="taxPreview" class="transaction-summary-value" style="color:#b45309;">0.00</div>
             </div>
@@ -368,16 +376,18 @@
     const addItemButton = document.getElementById('addItemButton');
     const totalForms = document.getElementById('id_items-TOTAL_FORMS');
     const subtotalPreview = document.getElementById('subtotalPreview');
+    const discountPreview = document.getElementById('discountPreview');
     const taxPreview = document.getElementById('taxPreview');
     const totalPreview = document.getElementById('expectedTotalPreview');
     const balancePreview = document.getElementById('balancePreview');
     const statusPreview = document.getElementById('statusPreview');
+    const discountField = document.getElementById('id_invoice_discount');
     const taxRateField = document.getElementById('id_invoice_tax_rate');
     const amountPaidField = document.getElementById('id_amount_paid');
     let autoFillPaid = form?.dataset.autoFillPaid === 'true';
     let lastAutoPaidValue = '';
 
-    if (!rowsContainer || !addItemButton || !totalForms || !subtotalPreview || !taxPreview || !totalPreview || !balancePreview || !statusPreview) {
+    if (!rowsContainer || !addItemButton || !totalForms || !subtotalPreview || !discountPreview || !taxPreview || !totalPreview || !balancePreview || !statusPreview) {
         return;
     }
 
@@ -431,12 +441,15 @@
                 subtotal += updateRowTotal(row);
             }
         });
+        const discount = Math.min(parseFloat(discountField?.value) || 0, subtotal);
+        const taxableAmount = Math.max(subtotal - discount, 0);
         const taxRate = parseFloat(taxRateField?.value) || 0;
-        const taxAmount = subtotal * (taxRate / 100);
-        const finalTotal = subtotal + taxAmount;
+        const taxAmount = taxableAmount * (taxRate / 100);
+        const finalTotal = taxableAmount + taxAmount;
         const formattedTotal = formatAmount(finalTotal);
 
         subtotalPreview.textContent = formatAmount(subtotal);
+        discountPreview.textContent = formatAmount(discount);
         taxPreview.textContent = formatAmount(taxAmount);
         totalPreview.textContent = formattedTotal;
 
@@ -543,6 +556,10 @@
 
     if (taxRateField) {
         taxRateField.addEventListener('input', syncTotals);
+    }
+
+    if (discountField) {
+        discountField.addEventListener('input', syncTotals);
     }
 
     if (amountPaidField) {

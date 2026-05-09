@@ -393,6 +393,7 @@ class Expense(models.Model):
     SUPPLIES = 'supplies'
     MAINTENANCE = 'maintenance'
     SALARY = 'salary'
+    TRANSPORT = 'transport'
     MISC = 'misc'
 
     CATEGORY_CHOICES = [
@@ -402,6 +403,7 @@ class Expense(models.Model):
         (SUPPLIES, 'Supplies'),
         (MAINTENANCE, 'Maintenance'),
         (SALARY, 'Salary'),
+        (TRANSPORT, 'Transport'),
         (MISC, 'Misc'),
     ]
 
