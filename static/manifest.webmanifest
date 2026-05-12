@@ -12,16 +12,22 @@
   "categories": ["business", "finance", "productivity"],
   "icons": [
     {
-      "src": "/static/img/cyberpoa-logo.svg",
-      "sizes": "any",
-      "type": "image/svg+xml",
+      "src": "/static/img/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
       "purpose": "any"
+    },
+    {
+      "src": "/static/img/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     },
     {
       "src": "/static/img/cyberpoa-logo.svg",
       "sizes": "any",
       "type": "image/svg+xml",
-      "purpose": "maskable"
+      "purpose": "any"
     }
   ],
   "shortcuts": [
@@ -31,9 +37,9 @@
       "url": "/",
       "icons": [
         {
-          "src": "/static/img/cyberpoa-logo.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "/static/img/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -43,9 +49,9 @@
       "url": "/transactions/",
       "icons": [
         {
-          "src": "/static/img/cyberpoa-logo.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "/static/img/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     },
@@ -55,9 +61,9 @@
       "url": "/reports/",
       "icons": [
         {
-          "src": "/static/img/cyberpoa-logo.svg",
-          "sizes": "any",
-          "type": "image/svg+xml"
+          "src": "/static/img/icons/icon-192.png",
+          "sizes": "192x192",
+          "type": "image/png"
         }
       ]
     }

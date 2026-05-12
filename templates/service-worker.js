@@ -1,10 +1,13 @@
 {% load static %}
-const CACHE_NAME = 'meneja360-pwa-v1';
+const CACHE_NAME = 'meneja360-pwa-v2';
 const APP_SHELL = [
     '{% static "manifest.webmanifest" %}',
     '{% static "css/style.css" %}',
     '{% static "js/pwa.js" %}',
     '{% static "img/cyberpoa-logo.svg" %}',
+    '{% static "img/icons/icon-180.png" %}',
+    '{% static "img/icons/icon-192.png" %}',
+    '{% static "img/icons/icon-512.png" %}',
     '{% static "offline.html" %}'
 ];
 
