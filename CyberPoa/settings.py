@@ -27,7 +27,19 @@ SECRET_KEY = 'django-insecure-!^s++l1julqy$l2kc)1htfjgxt!no)188x1%w&83-e-$(n*6^3
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['cyberpoa.onrender.com', 'localhost', '127.0.0.1']
+ALLOWED_HOSTS = [
+    'cyberpoa.onrender.com',
+    'meneja360.co.ke',
+    'www.meneja360.co.ke',
+    'localhost',
+    '127.0.0.1',
+]
+
+CSRF_TRUSTED_ORIGINS = [
+    'https://cyberpoa.onrender.com',
+    'https://meneja360.co.ke',
+    'https://www.meneja360.co.ke',
+]
 
 
 # Application definition
